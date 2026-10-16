@@ -36,7 +36,7 @@ typedef struct {
     uint8_t speed;              // Movement speed+10 (NOTE: +10 so that it can be an unsigned int)
     uint8_t sprite;             // Character representation (cchar)
     Dice_t hit_die;             // Creatures hit die
-    uint8_t damage[4];          // Type attack and damage
+    uint16_t damage[4];         // Type attack and damage (index into monster_attacks)
     uint8_t level;              // Level of creature
 } Creature_t;
 
@@ -49,8 +49,8 @@ typedef struct {
 } MonsterAttack_t;
 
 // Creature constants
-constexpr uint16_t MON_MAX_CREATURES = 279; // Number of creatures defined for univ
-constexpr uint8_t MON_ATTACK_TYPES = 215;   // Number of monster attack types.
+constexpr uint16_t MON_MAX_CREATURES = 412; // Umoria creatures plus Imoria extras
+constexpr uint16_t MON_ATTACK_TYPES = 325;  // Number of monster attack types.
 
 // With MON_TOTAL_ALLOCATIONS set to 101, it is possible to get compacting
 // monsters messages while breeding/cloning monsters.

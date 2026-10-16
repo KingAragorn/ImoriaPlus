@@ -10,8 +10,6 @@
 static void playDungeon();
 
 static void initializeCharacterInventory();
-static void initializeMonsterLevels();
-static void initializeTreasureLevels();
 static void priceAdjust();
 static char originalCommands(char command);
 static void doCommand(char command);
@@ -93,15 +91,10 @@ void startMoria(uint32_t seed, bool start_new_game, bool roguelike_keys) {
         py.flags.food = 7500;
         py.flags.food_digested = 2;
 
-        // Spell and Mana based on class: Mage or Clerical realm.
-        if (classes[py.misc.class_id].class_to_use_mage_spells == config::spells::SPELL_TYPE_MAGE) {
-            clearScreen(); // makes spell list easier to read
-            playerCalculateAllowedSpellsCount(PlayerAttr::A_INT);
-            playerGainMana(PlayerAttr::A_INT);
-        } else if (classes[py.misc.class_id].class_to_use_mage_spells == config::spells::SPELL_TYPE_PRIEST) {
-            playerCalculateAllowedSpellsCount(PlayerAttr::A_WIS);
-            clearScreen(); // force out the 'learn prayer' message
-            playerGainMana(PlayerAttr::A_WIS);
+        // Spell and mana for every casting realm.
+        if (classes[py.misc.class_id].class_to_use_mage_spells != config::spells::SPELL_TYPE_NONE) {
+            clearScreen();
+            playerUpdateSpellRealm();
         }
 
         // Set some default values -MRC-
@@ -186,7 +179,7 @@ static void initializeCharacterInventory() {
 }
 
 // Initializes M_LEVEL array for use with PLACE_MONSTER -RAK-
-static void initializeMonsterLevels() {
+void initializeMonsterLevels() {
     for (auto &level : monster_levels) {
         level = 0;
     }
@@ -201,7 +194,7 @@ static void initializeMonsterLevels() {
 }
 
 // Initializes T_LEVEL array for use with PLACE_OBJECT -RAK-
-static void initializeTreasureLevels() {
+void initializeTreasureLevels() {
     for (auto &level : treasure_levels) {
         level = 0;
     }
@@ -1847,14 +1840,14 @@ static void doCommand(char command) {
             look();
             game.player_free_turn = true;
             break;
-        case 'm': // (m)agic spells
-            getAndCastMagicSpell();
+        case 'm': // (m)agic spells, songs, or monk disciplines
+            playerCastRealm(false);
             break;
         case 'o': // (o)pen something
             playerOpenClosedObject();
             break;
-        case 'p': // (p)ray
-            pray();
+        case 'p': // (p)ray or (p)lay an instrument
+            playerCastRealm(true);
             break;
         case 'q': // (q)uaff
             quaff();
@@ -2082,7 +2075,21 @@ static bool itemEnchanted(Inventory_t const &item) {
 // Examine a Book -RAK-
 static void examineBook() {
     int item_pos_start, item_pos_end;
-    if (!inventoryFindRange(TV_MAGIC_BOOK, TV_PRAYER_BOOK, item_pos_start, item_pos_end)) {
+    uint8_t book_tvals[] = {TV_MAGIC_BOOK, TV_PRAYER_BOOK, TV_INSTRUMENT, TV_SONG_BOOK};
+    bool carrying_book = false;
+    uint8_t preferred = classBookCategory(py.misc.class_id);
+    if (preferred != 0 && inventoryFindRange(preferred, TV_NEVER, item_pos_start, item_pos_end)) {
+        carrying_book = true;
+    }
+    for (uint8_t tval : book_tvals) {
+        if (carrying_book) {
+            break;
+        }
+        if (inventoryFindRange(tval, TV_NEVER, item_pos_start, item_pos_end)) {
+            carrying_book = true;
+        }
+    }
+    if (!carrying_book) {
         printMessage("You are not carrying any books.");
         return;
     }
@@ -2104,20 +2111,11 @@ static void examineBook() {
 
     int item_id;
     if (inventoryGetInputForItemId(item_id, "Which Book?", item_pos_start, item_pos_end, CNIL, CNIL)) {
-        int spell_index[31];
         bool can_read = true;
 
         uint8_t treasure_type = py.inventory[item_id].category_id;
-
-        if (classes[py.misc.class_id].class_to_use_mage_spells == config::spells::SPELL_TYPE_MAGE) {
-            if (treasure_type != TV_MAGIC_BOOK) {
-                can_read = false;
-            }
-        } else if (classes[py.misc.class_id].class_to_use_mage_spells == config::spells::SPELL_TYPE_PRIEST) {
-            if (treasure_type != TV_PRAYER_BOOK) {
-                can_read = false;
-            }
-        } else {
+        uint8_t expected = classBookCategory(py.misc.class_id);
+        if (expected == 0 || treasure_type != expected) {
             can_read = false;
         }
 
@@ -2126,13 +2124,14 @@ static void examineBook() {
             return;
         }
 
-        uint32_t item_flags = py.inventory[item_id].flags;
+        uint64_t item_flags = bookSpellMask(py.inventory[item_id]);
+        int spell_index[PLAYER_MAX_SPELLS];
 
         int spell_id = 0;
         while (item_flags != 0u) {
             item_pos_end = getAndClearFirstBit(item_flags);
 
-            if (magic_spells[py.misc.class_id - 1][item_pos_end].level_required < 99) {
+            if (magic_spells[py.misc.class_id][item_pos_end].level_required < 99) {
                 spell_index[spell_id] = item_pos_end;
                 spell_id++;
             }

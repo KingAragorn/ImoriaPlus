@@ -1,4 +1,20 @@
-# Umoria
+# ImoriaPlus
+
+ImoriaPlus is a terminal roguelike that plays like **Imoria**, built on the
+**Umoria** 5.7 engine. The display is still curses. The game rules and the
+curses screen are separate, so a browser build can be added later.
+
+Imoria (University of Washington, version 4.85) added races, classes, songs,
+a larger town, and many creatures on top of Moria. Its VMS Pascal source is
+the rules reference: [dungeons-of-moria/imoria](https://github.com/dungeons-of-moria/imoria).
+Credits there: Kenneth Case, Mary Conner, Robert DeLoura, Dan Flye, Todd
+Gardiner, Dave Jungck, Andy Walker, and Dean Yasuda.
+
+Umoria is Robert Alan Koeneke's _Dungeons of Moria_, ported from VMS Pascal to
+C by James E. Wilson and maintained as
+[dungeons-of-moria/umoria](https://github.com/dungeons-of-moria/umoria).
+This tree keeps that history, the GPL-3.0 license, and the Umoria attribution.
+What is still to be brought across from Imoria is listed in [ROADMAP.md](ROADMAP.md).
 
 _The Dungeons of Moria_ is a single player dungeon simulation originally
 written by Robert Alan Koeneke, with its first public release in 1983.
@@ -44,28 +60,28 @@ people. Hopefully these changes will give many more people a chance to play
 this classic roguelike game.
 
 
-## Notes on Compiling Umoria
+## Notes on Compiling ImoriaPlus
 
-Umoria has been tested against GCC (`10` and `11`) and with `ncurses 6.x`,
-although recent earlier versions should also work fine.
-
-You will need these as well as `CMake` and the C++ build tools for your system.
+The game builds with CMake, a C++14 compiler (clang or GCC), and ncurses.
+It has been tested against GCC and ncurses 6.x. macOS needs the Xcode
+command-line tools (clang) and ncurses, which ships with the system.
 
 
 ### macOS and Linux
 
-Change to the `umoria` game directory and enter the following commands at the
-terminal:
+From the repository root:
 
-    $ mkdir build && cd build
-    $ cmake ..
-    $ make
+    $ cmake -S . -B build
+    $ cmake --build build
 
-NOTE: use `make -j $(nproc)` to speed up compilation on Linux.
+The game and its data files are written to `build/imoriaplus/`. Run:
 
-An `umoria` directory will be created in the current directory containing the
-game binary and data files, which can then be moved to any other location, such
-as the `home` directory.
+    $ ./build/imoriaplus/imoriaplus
+
+A headless smoke test rolls every legal race and class, then generates the
+town and the first dungeon level:
+
+    $ ./build/imoriaplus/imoriaplus_smoke
 
 
 ### Windows
@@ -91,7 +107,7 @@ To perform an out-of-source build, type the following:
     $ MINGW=mingw64 cmake ..
     $ make
 
-As with the macOS/Linux builds, all files will be installed into an `umoria` directory.
+As with the macOS/Linux builds, all files will be installed into an `imoriaplus` directory.
 
 
 ## Historical Documents

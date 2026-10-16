@@ -176,7 +176,7 @@ static void characterGetHistory() {
     auto history_id = py.misc.race_id * 3 + 1;
     auto social_class = randomNumber(4);
 
-    char history_block[240];
+    char history_block[512];
     history_block[0] = '\0';
 
     auto background_id = 0;
@@ -185,16 +185,33 @@ static void characterGetHistory() {
     do {
         bool flag = false;
         while (!flag) {
+            if (background_id >= PLAYER_MAX_BACKGROUNDS) {
+                history_id = 0;
+                flag = true;
+                break;
+            }
             if (character_backgrounds[background_id].chart == history_id) {
                 int test_roll = randomNumber(100);
 
                 while (test_roll > character_backgrounds[background_id].roll) {
                     background_id++;
+                    if (background_id >= PLAYER_MAX_BACKGROUNDS) {
+                        break;
+                    }
+                }
+                if (background_id >= PLAYER_MAX_BACKGROUNDS) {
+                    history_id = 0;
+                    flag = true;
+                    break;
                 }
 
                 Background_t const &background = character_backgrounds[background_id];
 
-                (void) strcat(history_block, background.info);
+                size_t used = strlen(history_block);
+                size_t extra = strlen(background.info);
+                if (used + extra < sizeof(history_block) - 1) {
+                    (void) strcat(history_block, background.info);
+                }
                 social_class += background.bonus - 50;
 
                 if (history_id > background.next) {
@@ -211,6 +228,11 @@ static void characterGetHistory() {
 
     playerClearHistory();
 
+    if (history_block[0] == '\0') {
+        py.misc.social_class = 1;
+        return;
+    }
+
     // Process block of history text for pretty output
     int cursor_start = 0;
     auto cursor_end = (int) strlen(history_block) - 1;
@@ -224,6 +246,9 @@ static void characterGetHistory() {
 
     bool flag = false;
     while (!flag) {
+        if (line_number >= 4) {
+            break;
+        }
         while (history_block[cursor_start] == ' ') {
             cursor_start++;
         }
@@ -514,4 +539,25 @@ void characterCreate() {
         exitProgram();
     }
     eraseLine(Coord_t{23, 0});
+}
+
+// Roll one race and class without the character-creation prompts.
+// Used by the headless smoke test, and safe to call for illegal pairs.
+bool characterRollRaceClass(uint8_t race_id, uint8_t class_id) {
+    if (race_id >= PLAYER_MAX_RACES || class_id >= PLAYER_MAX_CLASSES) {
+        return false;
+    }
+    if ((character_races[race_id].classes_bit_field & (uint16_t) (1u << class_id)) == 0) {
+        return false;
+    }
+
+    py.misc.race_id = race_id;
+    playerSetGender(true);
+    characterGenerateStatsAndRace();
+    characterGetHistory();
+    characterSetAgeHeightWeight();
+    generateCharacterClass(class_id);
+    playerCalculateStartGold();
+
+    return py.misc.current_hp > 0 && py.misc.history[0][0] != '\0';
 }

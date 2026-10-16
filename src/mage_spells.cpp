@@ -229,7 +229,7 @@ void getAndCastMagicSpell() {
 
     game.player_free_turn = false;
 
-    Spell_t const &magic_spell = magic_spells[py.misc.class_id - 1][choice];
+    Spell_t const &magic_spell = magic_spells[py.misc.class_id][choice];
 
     if (randomNumber(100) < chance) {
         printMessage("You failed to get the spell off!");
@@ -268,16 +268,11 @@ void getAndCastMagicSpell() {
 
 // Returns spell chance of failure for class_to_use_mage_spells -RAK-
 int spellChanceOfSuccess(int spell_id) {
-    Spell_t const &spell = magic_spells[py.misc.class_id - 1][spell_id];
+    Spell_t const &spell = magic_spells[py.misc.class_id][spell_id];
 
     int chance = spell.failure_chance - 3 * (py.misc.level - spell.level_required);
 
-    int stat;
-    if (classes[py.misc.class_id].class_to_use_mage_spells == config::spells::SPELL_TYPE_MAGE) {
-        stat = PlayerAttr::A_INT;
-    } else {
-        stat = PlayerAttr::A_WIS;
-    }
+    int stat = classSpellStat(py.misc.class_id);
 
     chance -= 3 * (playerStatAdjustmentWisdomIntelligence(stat) - 1);
 

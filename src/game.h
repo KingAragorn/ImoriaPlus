@@ -10,7 +10,7 @@ constexpr uint8_t TREASURE_MAX_LEVELS = 50; // Maximum level of magic in dungeon
 // Note that the following constants are all related, if you change one, you
 // must also change all succeeding ones.
 // Also, player_base_provisions[] and store_choices[] may also have to be changed.
-constexpr uint16_t MAX_OBJECTS_IN_GAME = 420; // Number of objects for universe
+constexpr uint16_t MAX_OBJECTS_IN_GAME = 435; // Umoria objects plus Imoria books and stores
 constexpr uint16_t MAX_DUNGEON_OBJECTS = 344; // Number of dungeon objects
 constexpr uint16_t OBJECT_IDENT_SIZE = 448;   // 7*64, see object_offset() in desc.cpp, could be MAX_OBJECTS o_o() rewritten
 
@@ -117,3 +117,5 @@ void setFileptr(FILE *file);
 // game_run.cpp
 // (includes the playDungeon() main game loop)
 void startMoria(uint32_t seed, bool start_new_game, bool roguelike_keys);
+void initializeMonsterLevels();
+void initializeTreasureLevels();

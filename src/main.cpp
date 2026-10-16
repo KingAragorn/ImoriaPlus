@@ -12,7 +12,7 @@ static bool parseGameSeed(const char *argv, uint32_t &seed);
 
 static const char *usage_instructions = R"(
 Usage:
-    umoria [OPTIONS] SAVEGAME
+    imoriaplus [OPTIONS] SAVEGAME
 
 SAVEGAME is an optional save game filename (default: game.sav)
 
@@ -88,8 +88,8 @@ int main(int argc, char *argv[]) {
             default:
                 terminalRestore();
 
-                printf("Robert A. Koeneke's classic dungeon crawler.\n");
-                printf("Umoria %d.%d.%d is released under a GPL-3.0-or-later license.\n", CURRENT_VERSION_MAJOR, CURRENT_VERSION_MINOR, CURRENT_VERSION_PATCH);
+                printf("ImoriaPlus, Imoria's rules on the Umoria engine.\n");
+                printf("ImoriaPlus %d.%d.%d is released under a GPL-3.0-or-later license.\n", CURRENT_VERSION_MAJOR, CURRENT_VERSION_MINOR, CURRENT_VERSION_PATCH);
                 printf("%s", usage_instructions);
                 return 0;
         }

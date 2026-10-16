@@ -22,6 +22,20 @@ int getAndClearFirstBit(uint32_t &flag) {
     return -1;
 }
 
+int getAndClearFirstBit(uint64_t &flag) {
+    uint64_t mask = 0x1;
+
+    for (int i = 0; i < (int) sizeof(flag) * 8; i++) {
+        if ((flag & mask) != 0u) {
+            flag &= ~mask;
+            return i;
+        }
+        mask <<= 1;
+    }
+
+    return -1;
+}
+
 // Insert a long number into a string (was `insert_lnum()` function)
 void insertNumberIntoString(char *to_string, const char *from_string, int32_t number, bool show_sign) {
     size_t from_len = strlen(from_string);

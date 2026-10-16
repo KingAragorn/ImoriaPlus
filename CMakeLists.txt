@@ -5,7 +5,7 @@ if (${CMAKE_SOURCE_DIR} STREQUAL "${PROJECT_SOURCE_DIR}/src")
     message(FATAL_ERROR "CMake generation is not allowed within the source directory!")
 endif ()
 
-project(umoria
+project(imoriaplus
     LANGUAGES CXX
 )
 
@@ -106,7 +106,6 @@ set(
         ${source_dir}/config.cpp
         ${source_dir}/helpers.cpp
         ${source_dir}/rng.cpp
-        ${source_dir}/main.cpp
         ${source_dir}/data_creatures.cpp
         ${source_dir}/data_player.cpp
         ${source_dir}/data_recall.cpp
@@ -145,6 +144,7 @@ set(
         ${source_dir}/recall.cpp
         ${source_dir}/scores.cpp
         ${source_dir}/scrolls.cpp
+        ${source_dir}/spell_cast.cpp
         ${source_dir}/spells.cpp
         ${source_dir}/staves.cpp
         ${source_dir}/store.cpp
@@ -152,7 +152,6 @@ set(
         ${source_dir}/treasure.cpp
         ${source_dir}/ui.cpp
         ${source_dir}/ui_inventory.cpp
-        ${source_dir}/ui_io.cpp
         ${source_dir}/wizard.cpp
 )
 
@@ -160,7 +159,7 @@ set(
 #
 # Set up the install paths and files
 #
-set(build_dir "umoria")
+set(build_dir "imoriaplus")
 set(data_dir "${build_dir}/data")
 
 
@@ -234,7 +233,11 @@ endforeach ()
 set(resources ${data_files} ${support_files})
 
 # Also add resources to the target so they are visible in the IDE
-add_executable(umoria ${source_files} ${resources})
+# The curses front end is only linked into the terminal game.
+# imoriaplus_smoke uses a headless ui_io so the engine can be built
+# without ncurses, which is the seam a later Emscripten port would use.
+add_executable(imoriaplus ${source_files} ${source_dir}/main.cpp ${source_dir}/ui_io.cpp ${resources})
+add_executable(imoriaplus_smoke ${source_files} ${source_dir}/smoke_main.cpp ${source_dir}/ui_io_stub.cpp)
 
 
 #
@@ -267,4 +270,4 @@ else ()
 endif ()
 
 include_directories(${CURSES_INCLUDE_DIR})
-target_link_libraries(umoria ${CURSES_LIBRARIES})
+target_link_libraries(imoriaplus ${CURSES_LIBRARIES})

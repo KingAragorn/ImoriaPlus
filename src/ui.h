@@ -5,6 +5,11 @@
 
 #pragma once
 
+// Display boundary. The game engine talks to the screen only through this
+// header. src/ui_io.cpp is the curses implementation used by the terminal
+// game. A later Emscripten (browser) front end can replace that one file;
+// the rest of the engine does not include curses.h.
+
 // Panel_t holds data about a screen panel (the dungeon display)
 // Screen panels calculated from the dungeon/screen dimensions
 typedef struct {

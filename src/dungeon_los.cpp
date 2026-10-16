@@ -486,7 +486,7 @@ static bool lookSee(Coord_t coord, bool &transparent) {
     }
 
     Tile_t const &tile = dg.floor[coord.y][coord.x];
-    transparent = tile.feature_id <= MAX_OPEN_SPACE;
+    transparent = tile.feature_id <= MAX_OPEN_SPACE || tile.feature_id == TILE_WATER;
 
     if (los_hack_no_query) {
         return false; // Don't look at a direct line of sight. A hack.
