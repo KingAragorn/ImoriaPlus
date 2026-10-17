@@ -257,10 +257,13 @@ static bool svWrite() {
     }
     wrShort((uint16_t) py.pack.weight);
     wrShort((uint16_t) py.equipment_count);
-    wrLong(py.flags.spells_learnt);
-    wrLong(py.flags.spells_worked);
-    wrLong(py.flags.spells_forgotten);
-    wrBytes(py.flags.spells_learned_order, 32);
+    wrLong((uint32_t) (py.flags.spells_learnt & 0xFFFFFFFF));
+    wrLong((uint32_t) (py.flags.spells_learnt >> 32));
+    wrLong((uint32_t) (py.flags.spells_worked & 0xFFFFFFFF));
+    wrLong((uint32_t) (py.flags.spells_worked >> 32));
+    wrLong((uint32_t) (py.flags.spells_forgotten & 0xFFFFFFFF));
+    wrLong((uint32_t) (py.flags.spells_forgotten >> 32));
+    wrBytes(py.flags.spells_learned_order, PLAYER_MAX_SPELLS);
     wrBytes(objects_identified, OBJECT_IDENT_SIZE);
     wrLong(game.magic_seed);
     wrLong(game.town_seed);
@@ -672,10 +675,10 @@ bool loadGame(bool &generate) {
             }
             py.pack.weight = rdShort();
             py.equipment_count = rdShort();
-            py.flags.spells_learnt = rdLong();
-            py.flags.spells_worked = rdLong();
-            py.flags.spells_forgotten = rdLong();
-            rdBytes(py.flags.spells_learned_order, 32);
+            py.flags.spells_learnt = (uint64_t) rdLong() | ((uint64_t) rdLong() << 32);
+            py.flags.spells_worked = (uint64_t) rdLong() | ((uint64_t) rdLong() << 32);
+            py.flags.spells_forgotten = (uint64_t) rdLong() | ((uint64_t) rdLong() << 32);
+            rdBytes(py.flags.spells_learned_order, PLAYER_MAX_SPELLS);
             rdBytes(objects_identified, OBJECT_IDENT_SIZE);
             game.magic_seed = rdLong();
             game.town_seed = rdLong();

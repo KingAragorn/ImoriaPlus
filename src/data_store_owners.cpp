@@ -10,6 +10,8 @@
 
 // Store owners have different characteristics for pricing and haggling
 // Note: Store owners should be added in groups, one for each store
+// Two keepers for each of the 11 haggling shops.
+// Index is store_id + MAX_STORES * variant. Race is 0-based.
 Owner_t store_owners[MAX_OWNERS] = {
     {"Erick the Honest       (Human)      General Store",   250, 175, 108, 4, 0, 12},
     {"Mauglin the Grumpy     (Dwarf)      Armory",        32000, 200, 112, 4, 5,  5},
@@ -17,18 +19,22 @@ Owner_t store_owners[MAX_OWNERS] = {
     {"Hardblow the Humble    (Human)      Temple",         3500, 175, 109, 6, 0, 15},
     {"Ga-nat the Greedy      (Gnome)      Alchemist",     12000, 220, 115, 4, 4,  9},
     {"Valeria Starshine      (Elf)        Magic Shop",    32000, 175, 110, 5, 2, 11},
+    {"Tika Majere            (Human)      Inn",            5000, 175, 108, 5, 0, 12},
+    {"Socrates               (Human)      Library",       32000, 170, 105, 4, 0, 10},
+    {"Dysella of Oakglade    (Dryad)      Music Shop",    20000, 180, 110, 5, 9, 12},
+    {"Dragon Master          (Human)      Gem Store",     25000, 190, 112, 4, 0,  8},
+    {"Grond the Grotesque    (Half-Orc)   Deli",           2000, 200, 115, 6, 6,  8},
     {"Andy the Friendly      (Halfling)   General Store",   200, 170, 108, 5, 3, 15},
     {"Darg-Low the Grim      (Human)      Armory",        10000, 190, 111, 4, 0,  9},
     {"Oglign Dragon-Slayer   (Dwarf)      Weaponsmith",   32000, 195, 112, 4, 5,  8},
     {"Gunnar the Paladin     (Human)      Temple",         5000, 185, 110, 5, 0, 23},
     {"Mauser the Chemist     (Half-Elf)   Alchemist",     10000, 190, 111, 5, 1,  8},
-    {"Gopher the Great!      (Gnome)      Magic Shop",    20000, 215, 113, 6, 4, 10},
-    {"Lyar-el the Comely     (Elf)        General Store",   300, 165, 107, 6, 2, 18},
-    {"Mauglim the Horrible   (Half-Orc)   Armory",         3000, 200, 113, 5, 6,  9},
-    {"Ithyl-Mak the Beastly  (Half-Troll) Weaponsmith",    3000, 210, 115, 6, 7,  8},
-    {"Delilah the Pure       (Half-Elf)   Temple",        25000, 180, 107, 6, 1, 20},
-    {"Wizzle the Chaotic     (Halfling)   Alchemist",     10000, 190, 110, 6, 3,  8},
-    {"Inglorian the Mage     (Human?)     Magic Shop",    32000, 200, 110, 7, 0, 10},
+    {"K'rek Kwith            (Phraint)    Magic Shop",    20000, 215, 113, 6, 8, 10},
+    {"Samwise                (Halfling)   Inn",            3000, 165, 107, 5, 3, 15},
+    {"Elrond                 (Elf)        Library",       32000, 160, 105, 4, 2, 12},
+    {"Shaun the Bard         (Human)      Music Shop",    15000, 175, 110, 5, 0, 14},
+    {"Ari-San                (Human)      Gem Store",     20000, 185, 110, 5, 0,  9},
+    {"Gerald Ciceau          (Human)      Deli",           1500, 180, 108, 5, 0, 10},
 };
 
 const char *speech_sale_accepted[14] = {

@@ -199,22 +199,11 @@ void setGameOptions() {
     }
 }
 
-// Support for Umoria 5.2.2 up to 5.7.x.
-// The save file format was frozen as of version 5.2.2.
+// ImoriaPlus 5.8 changed spell masks, store count, and the creature table.
+// Older Umoria saves are rejected so they are not misread.
 bool validGameVersion(uint8_t major, uint8_t minor, uint8_t patch) {
-    if (major != 5) {
-        return false;
-    }
-
-    if (minor < 2) {
-        return false;
-    }
-
-    if (minor == 2 && patch < 2) {
-        return false;
-    }
-
-    return minor <= 7;
+    (void) patch;
+    return major == 5 && minor == 8;
 }
 
 bool isCurrentGameVersion(uint8_t major, uint8_t minor, uint8_t patch) {

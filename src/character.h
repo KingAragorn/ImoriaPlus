@@ -18,11 +18,11 @@ typedef struct {
     uint8_t max_age;            // Maximum age of character
     uint8_t male_height_base;   // base height for males
     uint8_t male_height_mod;    // mod height for males
-    uint8_t male_weight_base;   // base weight for males
+    uint16_t male_weight_base;  // base weight for males
     uint8_t male_weight_mod;    // mod weight for males
     uint8_t female_height_base; // base height females
     uint8_t female_height_mod;  // mod height for females
-    uint8_t female_weight_base; // base weight for female
+    uint16_t female_weight_base; // base weight for female
     uint8_t female_weight_mod;  // mod weight for females
     int16_t disarm_chance_base; // base chance to disarm
     int16_t search_chance_base; // base chance for search
@@ -34,7 +34,7 @@ typedef struct {
     uint8_t hit_points_base;    // Base hit points for race
     uint8_t infra_vision;       // See infra-red
     uint8_t exp_factor_base;    // Base experience factor
-    uint8_t classes_bit_field;  // Bit field for class types
+    uint16_t classes_bit_field; // Bit field for class types (10 classes)
 } Race_t;
 
 // Class type for the generated player character
@@ -69,3 +69,7 @@ typedef struct {
 } Background_t;
 
 void characterCreate();
+
+// Roll one race/class pair without the character-creation UI.
+// Returns false when that race cannot be that class.
+bool characterRollRaceClass(uint8_t race_id, uint8_t class_id);

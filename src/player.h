@@ -29,10 +29,12 @@ constexpr uint8_t CLASS_MISC_HIT = 4;
 constexpr uint8_t CLASS_MAX_LEVEL_ADJUST = 5;
 
 // Player constants
-constexpr uint8_t PLAYER_MAX_LEVEL = 40;        // Maximum possible character level
-constexpr uint8_t PLAYER_MAX_CLASSES = 6;       // Number of defined classes
-constexpr uint8_t PLAYER_MAX_RACES = 8;         // Number of defined races
-constexpr uint8_t PLAYER_MAX_BACKGROUNDS = 128; // Number of types of histories for univ
+constexpr uint8_t PLAYER_MAX_LEVEL = 40;         // Maximum possible character level
+constexpr uint8_t PLAYER_MAX_CLASSES = 10;       // Warrior through Monk
+constexpr uint8_t PLAYER_MAX_RACES = 10;         // Human through Dryad
+constexpr uint16_t PLAYER_MAX_BACKGROUNDS = 256; // Number of types of histories for univ
+constexpr uint8_t PLAYER_MAX_SPELLS = 40;        // Spells in one class book
+constexpr uint8_t CLASS_MONK = 9;                // Monk class id (0-based)
 
 // Base to hit constants
 constexpr uint8_t BTH_PER_PLUS_TO_HIT_ADJUST = 3; // Adjust BTH per plus-to-hit
@@ -141,11 +143,11 @@ typedef struct Player_t {
         bool sustain_chr;         // Keep charisma
         bool confuse_monster;     // Glowing hands.
 
-        uint8_t new_spells_to_learn;      // Number of spells can learn.
-        uint32_t spells_learnt;           // bit mask of spells learned
-        uint32_t spells_worked;           // bit mask of spells tried and worked
-        uint32_t spells_forgotten;        // bit mask of spells learned but forgotten
-        uint8_t spells_learned_order[32]; // order spells learned/remembered/forgotten
+        uint8_t new_spells_to_learn;                    // Number of spells can learn.
+        uint64_t spells_learnt;                         // bit mask of spells learned
+        uint64_t spells_worked;                         // bit mask of spells tried and worked
+        uint64_t spells_forgotten;                      // bit mask of spells learned but forgotten
+        uint8_t spells_learned_order[PLAYER_MAX_SPELLS]; // order spells learned/remembered/forgotten
     } flags{};
 
     Coord_t pos{};       // location in dungeon
@@ -221,6 +223,7 @@ bool playerWornItemIsCursed(PlayerEquipment id);
 void playerWornItemRemoveCurse(PlayerEquipment id);
 
 void playerGainSpells();
+void playerUpdateSpellRealm();
 void playerGainMana(int stat);
 int playerWeaponCriticalBlow(int weapon_weight, int plus_to_hit, int damage, int attack_type_id);
 bool playerSavingThrow();

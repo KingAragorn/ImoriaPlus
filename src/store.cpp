@@ -958,6 +958,54 @@ static bool setAlchemistItems(uint8_t item_id) {
     }
 }
 
+static bool setInnItems(uint8_t item_id) {
+    switch (item_id) {
+        case TV_FOOD:
+        case TV_POTION1:
+        case TV_POTION2:
+        case TV_FLASK:
+        case TV_LIGHT:
+            return true;
+        default:
+            return false;
+    }
+}
+
+static bool setLibraryItems(uint8_t item_id) {
+    switch (item_id) {
+        case TV_MAGIC_BOOK:
+        case TV_PRAYER_BOOK:
+        case TV_SONG_BOOK:
+            return true;
+        default:
+            return false;
+    }
+}
+
+static bool setMusicShopItems(uint8_t item_id) {
+    switch (item_id) {
+        case TV_SONG_BOOK:
+        case TV_INSTRUMENT:
+            return true;
+        default:
+            return false;
+    }
+}
+
+static bool setGemStoreItems(uint8_t item_id) {
+    switch (item_id) {
+        case TV_AMULET:
+        case TV_RING:
+            return true;
+        default:
+            return false;
+    }
+}
+
+static bool setDeliItems(uint8_t item_id) {
+    return item_id == TV_FOOD;
+}
+
 static bool setMagicShopItems(uint8_t item_id) {
     switch (item_id) {
         case TV_AMULET:
@@ -978,6 +1026,7 @@ static bool setMagicShopItems(uint8_t item_id) {
 // Each store will buy only certain items, based on TVAL
 bool (*store_buy[MAX_STORES])(uint8_t) = {
     setGeneralStoreItems, setArmoryItems, setWeaponsmithItems, setTempleItems, setAlchemistItems, setMagicShopItems,
+    setInnItems, setLibraryItems, setMusicShopItems, setGemStoreItems, setDeliItems,
 };
 
 // Sell an item to the store -RAK-

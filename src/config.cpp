@@ -180,6 +180,7 @@ namespace config {
             const uint32_t CM_20_RANDOM = 0x00000008L;
             const uint32_t CM_40_RANDOM = 0x00000010L;
             const uint32_t CM_75_RANDOM = 0x00000020L;
+            const uint32_t CM_WATER = 0x00000040L;
 
             const uint32_t CM_SPECIAL = 0x003F0000L;
             const uint32_t CM_INVISIBLE = 0x00010000L;
@@ -318,10 +319,7 @@ namespace config {
     } // namespace identification
 
     namespace spells {
-        // Class spell types
-        const uint8_t SPELL_TYPE_NONE = 0;
-        const uint8_t SPELL_TYPE_MAGE = 1;
-        const uint8_t SPELL_TYPE_PRIEST = 2;
+        // Class spell types are constexpr in config.h so they can be switch cases.
 
         // offsets to spell names in spell_names[] array
         const uint8_t NAME_OFFSET_SPELLS = 0;

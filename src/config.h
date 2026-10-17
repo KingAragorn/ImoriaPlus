@@ -169,6 +169,7 @@ namespace config {
             extern const uint32_t CM_20_RANDOM;
             extern const uint32_t CM_40_RANDOM;
             extern const uint32_t CM_75_RANDOM;
+            extern const uint32_t CM_WATER; // Imoria water-based movement (not part of CM_ALL_MV_FLAGS)
 
             extern const uint32_t CM_SPECIAL;
             extern const uint32_t CM_INVISIBLE;
@@ -303,9 +304,12 @@ namespace config {
     }
 
     namespace spells {
-        extern const uint8_t SPELL_TYPE_NONE;
-        extern const uint8_t SPELL_TYPE_MAGE;
-        extern const uint8_t SPELL_TYPE_PRIEST;
+        constexpr uint8_t SPELL_TYPE_NONE = 0;
+        constexpr uint8_t SPELL_TYPE_MAGE = 1;
+        constexpr uint8_t SPELL_TYPE_PRIEST = 2;
+        constexpr uint8_t SPELL_TYPE_SONG = 3;
+        constexpr uint8_t SPELL_TYPE_DRUID = 4;
+        constexpr uint8_t SPELL_TYPE_MONK = 5;
 
         extern const uint8_t NAME_OFFSET_SPELLS;
         extern const uint8_t NAME_OFFSET_PRAYERS;

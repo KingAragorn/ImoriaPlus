@@ -675,12 +675,8 @@ void displaySpellsList(const int *spell_ids, int number_of_choices, bool comment
         col = 31;
     }
 
-    int consecutive_offset;
-    if (classes[py.misc.class_id].class_to_use_mage_spells == config::spells::SPELL_TYPE_MAGE) {
-        consecutive_offset = config::spells::NAME_OFFSET_SPELLS;
-    } else {
-        consecutive_offset = config::spells::NAME_OFFSET_PRAYERS;
-    }
+    const char *noun = classSpellNoun(py.misc.class_id);
+    (void) noun;
 
     eraseLine(Coord_t{1, col});
     putString("Name", Coord_t{1, col + 5});
@@ -693,16 +689,16 @@ void displaySpellsList(const int *spell_ids, int number_of_choices, bool comment
 
     for (int i = 0; i < number_of_choices; i++) {
         int spell_id = spell_ids[i];
-        Spell_t const &spell = magic_spells[py.misc.class_id - 1][spell_id];
+        Spell_t const &spell = magic_spells[py.misc.class_id][spell_id];
 
         const char *p = nullptr;
         if (!comment) {
             p = "";
-        } else if ((py.flags.spells_forgotten & (1L << spell_id)) != 0) {
+        } else if ((py.flags.spells_forgotten & (1ULL << spell_id)) != 0) {
             p = " forgotten";
-        } else if ((py.flags.spells_learnt & (1L << spell_id)) == 0) {
+        } else if ((py.flags.spells_learnt & (1ULL << spell_id)) == 0) {
             p = " unknown";
-        } else if ((py.flags.spells_worked & (1L << spell_id)) == 0) {
+        } else if ((py.flags.spells_worked & (1ULL << spell_id)) == 0) {
             p = " untried";
         } else {
             p = "";
@@ -718,7 +714,7 @@ void displaySpellsList(const int *spell_ids, int number_of_choices, bool comment
         }
 
         vtype_t out_val = {'\0'};
-        (void) snprintf(out_val, MORIA_MESSAGE_SIZE, "  %c) %-30s%2d %4d %3d%%%s", spell_char, spell_names[spell_id + consecutive_offset], spell.level_required,
+        (void) snprintf(out_val, MORIA_MESSAGE_SIZE, "  %c) %-30s%2d %4d %3d%%%s", spell_char, spell.name, spell.level_required,
                         spell.mana_required, spellChanceOfSuccess(spell_id), p);
         putStringClearToEOL(out_val, Coord_t{2 + i, col});
     }
@@ -747,12 +743,8 @@ static void playerGainLevel() {
 
     Class_t const &player_class = classes[py.misc.class_id];
 
-    if (player_class.class_to_use_mage_spells == config::spells::SPELL_TYPE_MAGE) {
-        playerCalculateAllowedSpellsCount(PlayerAttr::A_INT);
-        playerGainMana(PlayerAttr::A_INT);
-    } else if (player_class.class_to_use_mage_spells == config::spells::SPELL_TYPE_PRIEST) {
-        playerCalculateAllowedSpellsCount(PlayerAttr::A_WIS);
-        playerGainMana(PlayerAttr::A_WIS);
+    if (player_class.class_to_use_mage_spells != config::spells::SPELL_TYPE_NONE) {
+        playerUpdateSpellRealm();
     }
 }
 

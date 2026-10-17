@@ -7,6 +7,91 @@
 
 #include "headers.h"
 
+int classSpellStat(uint8_t class_id) {
+    switch (classes[class_id].class_to_use_mage_spells) {
+        case config::spells::SPELL_TYPE_MAGE:
+            return PlayerAttr::A_INT;
+        case config::spells::SPELL_TYPE_SONG:
+            return PlayerAttr::A_CHR;
+        default:
+            return PlayerAttr::A_WIS;
+    }
+}
+
+const char *classSpellNoun(uint8_t class_id) {
+    switch (classes[class_id].class_to_use_mage_spells) {
+        case config::spells::SPELL_TYPE_PRIEST:
+            return "prayer";
+        case config::spells::SPELL_TYPE_SONG:
+            return "song";
+        case config::spells::SPELL_TYPE_DRUID:
+            return "song";
+        case config::spells::SPELL_TYPE_MONK:
+            return "discipline";
+        default:
+            return "spell";
+    }
+}
+
+const char *classSpellVerb(uint8_t class_id) {
+    switch (classes[class_id].class_to_use_mage_spells) {
+        case config::spells::SPELL_TYPE_PRIEST:
+            return "Recite";
+        case config::spells::SPELL_TYPE_SONG:
+            return "Sing";
+        case config::spells::SPELL_TYPE_DRUID:
+            return "Play";
+        case config::spells::SPELL_TYPE_MONK:
+            return "Use";
+        default:
+            return "Cast";
+    }
+}
+
+bool classChoosesSpells(uint8_t class_id) {
+    uint8_t realm = classes[class_id].class_to_use_mage_spells;
+    return realm == config::spells::SPELL_TYPE_MAGE || realm == config::spells::SPELL_TYPE_SONG || realm == config::spells::SPELL_TYPE_DRUID ||
+           realm == config::spells::SPELL_TYPE_MONK;
+}
+
+bool classLearnsFromBook(uint8_t class_id) {
+    uint8_t realm = classes[class_id].class_to_use_mage_spells;
+    return realm == config::spells::SPELL_TYPE_MAGE || realm == config::spells::SPELL_TYPE_SONG || realm == config::spells::SPELL_TYPE_DRUID;
+}
+
+uint8_t classBookCategory(uint8_t class_id) {
+    switch (classes[class_id].class_to_use_mage_spells) {
+        case config::spells::SPELL_TYPE_MAGE:
+            return TV_MAGIC_BOOK;
+        case config::spells::SPELL_TYPE_PRIEST:
+            return TV_PRAYER_BOOK;
+        case config::spells::SPELL_TYPE_SONG:
+            return TV_SONG_BOOK;
+        case config::spells::SPELL_TYPE_DRUID:
+            return TV_INSTRUMENT;
+        default:
+            return 0;
+    }
+}
+
+uint64_t bookSpellMask(const Inventory_t &item) {
+    uint64_t mask = item.flags & 0x7FFFFFFFu;
+    if (item.misc_use > 0 && (item.category_id == TV_MAGIC_BOOK || item.category_id == TV_PRAYER_BOOK || item.category_id == TV_SONG_BOOK || item.category_id == TV_INSTRUMENT)) {
+        mask |= (uint64_t) (item.misc_use & 0x1FF) << 31;
+    }
+    return mask;
+}
+
+uint64_t classKnownSpellMask() {
+    uint64_t mask = 0;
+    for (int i = 0; i < PLAYER_MAX_SPELLS; i++) {
+        if (magic_spells[py.misc.class_id][i].level_required < 99) {
+            mask |= (1ULL << i);
+        }
+    }
+    return mask;
+}
+
 // Returns spell pointer -RAK-
 static bool spellGetId(int *spell_ids, int number_of_choices, int &spell_id, int &spell_chance, const char *prompt, int first_spell) {
     spell_id = -1;
@@ -18,12 +103,8 @@ static bool spellGetId(int *spell_ids, int number_of_choices, int &spell_id, int
     bool spell_found = false;
     bool redraw = false;
 
-    int offset;
-    if (classes[py.misc.class_id].class_to_use_mage_spells == config::spells::SPELL_TYPE_MAGE) {
-        offset = config::spells::NAME_OFFSET_SPELLS;
-    } else {
-        offset = config::spells::NAME_OFFSET_PRAYERS;
-    }
+    const char *noun = classSpellNoun(py.misc.class_id);
+    const char *verb = classSpellVerb(py.misc.class_id);
 
     char spellChoice;
     while (!spell_found && getMenuItemId(str, spellChoice)) {
@@ -41,10 +122,10 @@ static bool spellGetId(int *spell_ids, int number_of_choices, int &spell_id, int
             if (test_spell_id == number_of_choices) {
                 spell_id = -2;
             } else {
-                Spell_t const &spell = magic_spells[py.misc.class_id - 1][spell_id];
+                Spell_t const &spell = magic_spells[py.misc.class_id][spell_id];
 
                 vtype_t tmp_str = {'\0'};
-                (void) snprintf(tmp_str, MORIA_MESSAGE_SIZE, "Cast %s (%d mana, %d%% fail)?", spell_names[spell_id + offset], spell.mana_required, spellChanceOfSuccess(spell_id));
+                (void) snprintf(tmp_str, MORIA_MESSAGE_SIZE, "%s %s (%d mana, %d%% fail)?", verb, spell.name, spell.mana_required, spellChanceOfSuccess(spell_id));
                 if (getInputConfirmation(tmp_str)) {
                     spell_found = true;
                 } else {
@@ -83,7 +164,7 @@ static bool spellGetId(int *spell_ids, int number_of_choices, int &spell_id, int
 
         if (spell_id == -2) {
             vtype_t tmp_str = {'\0'};
-            (void) snprintf(tmp_str, MORIA_MESSAGE_SIZE, "You don't know that %s.", (offset == config::spells::NAME_OFFSET_SPELLS ? "spell" : "prayer"));
+            (void) snprintf(tmp_str, MORIA_MESSAGE_SIZE, "You don't know that %s.", noun);
             printMessage(tmp_str);
         }
     }
@@ -101,28 +182,17 @@ static bool spellGetId(int *spell_ids, int number_of_choices, int &spell_id, int
     return spell_found;
 }
 
-// Return spell number and failure chance -RAK-
-// returns -1 if no spells in book
-// returns  1 if choose a spell in book to cast
-// returns  0 if don't choose a spell, i.e. exit with an escape
-// TODO: split into two functions; getting spell ID and casting an actual spell
-int castSpellGetId(const char *prompt, int item_id, int &spell_id, int &spell_chance) {
-    // NOTE: `flags` gets set again, since getAndClearFirstBit modified it
-    uint32_t flags = py.inventory[item_id].flags;
-    int first_spell = getAndClearFirstBit(flags);
-
-    // Get flags again since getAndClearFirstBit modified variable.
-    flags = py.inventory[item_id].flags & py.flags.spells_learnt;
-
-    // TODO(cook) move access to `magic_spells[]` directly to the for loop it's used in, below?
-    Spell_t *spells = magic_spells[py.misc.class_id - 1];
+int castSpellChooseFromMask(const char *prompt, uint64_t spell_mask, int first_spell, int &spell_id, int &spell_chance) {
+    Spell_t *spells = magic_spells[py.misc.class_id];
 
     int spell_count = 0;
-    int spell_list[31];
+    int spell_list[PLAYER_MAX_SPELLS];
 
-    while (flags != 0u) {
-        int pos = getAndClearFirstBit(flags);
-
+    while (spell_mask != 0u && spell_count < PLAYER_MAX_SPELLS) {
+        int pos = getAndClearFirstBit(spell_mask);
+        if (pos < 0 || pos >= PLAYER_MAX_SPELLS) {
+            break;
+        }
         if (spells[pos].level_required <= py.misc.level) {
             spell_list[spell_count] = pos;
             spell_count++;
@@ -132,14 +202,17 @@ int castSpellGetId(const char *prompt, int item_id, int &spell_id, int &spell_ch
     if (spell_count == 0) {
         return -1;
     }
+    if (first_spell < 0) {
+        first_spell = spell_list[0];
+    }
 
     int result = 0;
     if (spellGetId(spell_list, spell_count, spell_id, spell_chance, prompt, first_spell)) {
         result = 1;
     }
 
-    if ((result != 0) && magic_spells[py.misc.class_id - 1][spell_id].mana_required > py.misc.current_mana) {
-        if (classes[py.misc.class_id].class_to_use_mage_spells == config::spells::SPELL_TYPE_MAGE) {
+    if ((result != 0) && magic_spells[py.misc.class_id][spell_id].mana_required > py.misc.current_mana) {
+        if (classChoosesSpells(py.misc.class_id)) {
             result = (int) getInputConfirmation("You summon your limited strength to cast this one! Confirm?");
         } else {
             result = (int) getInputConfirmation("The gods may think you presumptuous for this! Confirm?");
@@ -147,6 +220,18 @@ int castSpellGetId(const char *prompt, int item_id, int &spell_id, int &spell_ch
     }
 
     return result;
+}
+
+// Return spell number and failure chance -RAK-
+// returns -1 if no spells in book
+// returns  1 if choose a spell in book to cast
+// returns  0 if don't choose a spell, i.e. exit with an escape
+int castSpellGetId(const char *prompt, int item_id, int &spell_id, int &spell_chance) {
+    uint64_t full_mask = bookSpellMask(py.inventory[item_id]);
+    uint64_t mask_copy = full_mask;
+    int first_spell = getAndClearFirstBit(mask_copy);
+    uint64_t known = full_mask & py.flags.spells_learnt;
+    return castSpellChooseFromMask(prompt, known, first_spell, spell_id, spell_chance);
 }
 
 // Following are spell procedure/functions -RAK-
@@ -2186,12 +2271,8 @@ void spellLoseEXP(int32_t adjustment) {
 
         Class_t const &character_class = classes[py.misc.class_id];
 
-        if (character_class.class_to_use_mage_spells == config::spells::SPELL_TYPE_MAGE) {
-            playerCalculateAllowedSpellsCount(PlayerAttr::A_INT);
-            playerGainMana(PlayerAttr::A_INT);
-        } else if (character_class.class_to_use_mage_spells == config::spells::SPELL_TYPE_PRIEST) {
-            playerCalculateAllowedSpellsCount(PlayerAttr::A_WIS);
-            playerGainMana(PlayerAttr::A_WIS);
+        if (character_class.class_to_use_mage_spells != config::spells::SPELL_TYPE_NONE) {
+            playerUpdateSpellRealm();
         }
         printCharacterLevel();
         printCharacterTitle();

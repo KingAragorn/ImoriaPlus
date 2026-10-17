@@ -27,6 +27,7 @@ constexpr uint8_t MAX_CAVE_ROOM = 2;
 constexpr uint8_t TILE_CORR_FLOOR = 3;
 constexpr uint8_t TILE_BLOCKED_FLOOR = 4; // a corridor space with cl/st/se door or rubble
 constexpr uint8_t MAX_CAVE_FLOOR = 4;
+constexpr uint8_t TILE_WATER = 5;          // walkable water; not part of MAX_OPEN_SPACE
 
 constexpr uint8_t MAX_OPEN_SPACE = 3;
 constexpr uint8_t MIN_CLOSED_SPACE = 4;

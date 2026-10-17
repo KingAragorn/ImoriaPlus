@@ -972,7 +972,7 @@ static void dungeonNewSpot(Coord_t &coord) {
         position.y = (int32_t) randomNumber(dg.height - 2);
         position.x = (int32_t) randomNumber(dg.width - 2);
         tile = &dg.floor[position.y][position.x];
-    } while (tile->feature_id >= MIN_CLOSED_SPACE || tile->creature_id != 0 || tile->treasure_id != 0);
+    } while (tile->feature_id >= MIN_CLOSED_SPACE || tile->feature_id == TILE_WATER || tile->creature_id != 0 || tile->treasure_id != 0);
 
     coord.y = position.y;
     coord.x = position.x;
@@ -1104,40 +1104,65 @@ static void dungeonGenerate() {
     }
 }
 
-// Builds a store at a row, column coordinate
-static void dungeonBuildStore(int store_id, Coord_t coord) {
-    int yval = coord.y * 10 + 5;
-    int xval = coord.x * 16 + 16;
-    int height = yval - randomNumber(3);
-    int depth = yval + randomNumber(4);
-    int left = xval - randomNumber(6);
-    int right = xval + randomNumber(6);
+// Door object for each haggling shop. Stores past the original six are not
+// OBJ_STORE_DOOR + id, because that range is the trap list.
+static const uint16_t town_store_doors[MAX_STORES] = {
+    372, 373, 374, 375, 376, 377, 420, 421, 422, 423, 424,
+};
 
-    int y, x;
+// Builds a store around an absolute center, clamped inside the map.
+static void dungeonBuildStore(int store_id, int center_y, int center_x) {
+    int height = center_y - randomNumber(3);
+    int depth = center_y + randomNumber(4);
+    int left = center_x - randomNumber(6);
+    int right = center_x + randomNumber(6);
 
-    for (y = height; y <= depth; y++) {
-        for (x = left; x <= right; x++) {
+    if (height < 1) {
+        height = 1;
+    }
+    if (left < 1) {
+        left = 1;
+    }
+    if (depth > dg.height - 2) {
+        depth = dg.height - 2;
+    }
+    if (right > dg.width - 2) {
+        right = dg.width - 2;
+    }
+    if (depth <= height) {
+        depth = height + 1;
+    }
+    if (right <= left) {
+        right = left + 1;
+    }
+
+    for (int y = height; y <= depth; y++) {
+        for (int x = left; x <= right; x++) {
             dg.floor[y][x].feature_id = TILE_BOUNDARY_WALL;
         }
     }
 
+    int y;
+    int x;
     int tmp = randomNumber(4);
     if (tmp < 3) {
         y = randomNumber(depth - height) + height - 1;
-
-        if (tmp == 1) {
-            x = left;
-        } else {
-            x = right;
-        }
-    } else {
-        x = randomNumber(right - left) + left - 1;
-
-        if (tmp == 3) {
-            y = depth;
-        } else {
+        if (y < height) {
             y = height;
         }
+        if (y > depth) {
+            y = depth;
+        }
+        x = tmp == 1 ? left : right;
+    } else {
+        x = randomNumber(right - left) + left - 1;
+        if (x < left) {
+            x = left;
+        }
+        if (x > right) {
+            x = right;
+        }
+        y = tmp == 3 ? depth : height;
     }
 
     dg.floor[y][x].feature_id = TILE_CORR_FLOOR;
@@ -1145,7 +1170,7 @@ static void dungeonBuildStore(int store_id, Coord_t coord) {
     int cur_pos = popt();
     dg.floor[y][x].treasure_id = (uint8_t) cur_pos;
 
-    inventoryItemCopyTo(config::dungeon::objects::OBJ_STORE_DOOR + store_id, game.treasure.list[cur_pos]);
+    inventoryItemCopyTo(town_store_doors[store_id], game.treasure.list[cur_pos]);
 }
 
 // Link all free space in treasure list together
@@ -1164,24 +1189,45 @@ static void monsterLinker() {
     next_free_monster_id = config::monsters::MON_MIN_INDEX_ID;
 }
 
+// Imoria town slots on a 4 by 9 grid. y = 10*(slot/9)+6, x = 14*(slot%9)+11.
 static void dungeonPlaceTownStores() {
-    int rooms[6];
-    for (int i = 0; i < 6; i++) {
-        rooms[i] = i;
+    static const int slots[MAX_STORES] = {1, 3, 5, 7, 10, 12, 14, 16, 19, 21, 23};
+
+    for (int store_id = 0; store_id < MAX_STORES; store_id++) {
+        int slot = slots[store_id];
+        int y = 10 * (slot / 9) + 6;
+        int x = 14 * (slot % 9) + 11;
+        dungeonBuildStore(store_id, y, x);
+    }
+}
+
+// A river and two fountains. Stairs and doors keep their treasure, so they stay.
+static void townCarveWater() {
+    int river = dg.height - 8;
+    for (int y = river; y < river + 2; y++) {
+        if (y < 1 || y >= dg.height - 1) {
+            continue;
+        }
+        for (int x = 1; x < dg.width - 1; x++) {
+            Tile_t &tile = dg.floor[y][x];
+            if (tile.feature_id == TILE_DARK_FLOOR && tile.treasure_id == 0) {
+                tile.feature_id = TILE_WATER;
+            }
+        }
     }
 
-    int rooms_count = 6;
-
-    for (int y = 0; y < 2; y++) {
-        for (int x = 0; x < 3; x++) {
-            int room_id = randomNumber(rooms_count) - 1;
-            dungeonBuildStore(rooms[room_id], Coord_t{y, x});
-
-            for (int i = room_id; i < rooms_count - 1; i++) {
-                rooms[i] = rooms[i + 1];
+    int pools[2][2] = {{20, 70}, {20, 100}};
+    for (auto &pool : pools) {
+        for (int y = pool[0]; y < pool[0] + 3; y++) {
+            for (int x = pool[1]; x < pool[1] + 3; x++) {
+                if (y < 1 || x < 1 || y >= dg.height - 1 || x >= dg.width - 1) {
+                    continue;
+                }
+                Tile_t &tile = dg.floor[y][x];
+                if (tile.feature_id == TILE_DARK_FLOOR && tile.treasure_id == 0) {
+                    tile.feature_id = TILE_WATER;
+                }
             }
-
-            rooms_count--;
         }
     }
 }
@@ -1227,6 +1273,7 @@ static void townGeneration() {
     // make stairs before seedResetToOldSeed, so that they don't move around
     dungeonPlaceBoundaryWalls();
     dungeonPlaceStairs(2, 1, 0);
+    townCarveWater();
 
     seedResetToOldSeed();
 
@@ -1260,8 +1307,9 @@ void generateCave() {
     dg.width = MAX_WIDTH;
 
     if (dg.current_level == 0) {
-        dg.height = SCREEN_HEIGHT;
-        dg.width = SCREEN_WIDTH;
+        // Imoria's town is twice the old screen, 44 by 132.
+        dg.height = (uint8_t) (SCREEN_HEIGHT * 2);
+        dg.width = (uint8_t) (SCREEN_WIDTH * 2);
     }
 
     dg.panel.max_rows = (int16_t) ((dg.height / SCREEN_HEIGHT) * 2 - 2);

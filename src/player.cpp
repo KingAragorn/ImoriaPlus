@@ -815,7 +815,7 @@ static bool playerCanRead() {
 }
 
 static int lastKnownSpell() {
-    for (int last_known = 0; last_known < 32; last_known++) {
+    for (int last_known = 0; last_known < PLAYER_MAX_SPELLS; last_known++) {
         if (py.flags.spells_learned_order[last_known] == 99) {
             return last_known;
         }
@@ -825,16 +825,26 @@ static int lastKnownSpell() {
     return 0;
 }
 
-static uint32_t playerDetermineLearnableSpells() {
-    uint32_t spell_flag = 0;
+static uint64_t playerDetermineLearnableSpells() {
+    uint64_t spell_flag = 0;
+    uint8_t book = classBookCategory(py.misc.class_id);
 
     for (int i = 0; i < py.pack.unique_items; i++) {
-        if (py.inventory[i].category_id == TV_MAGIC_BOOK) {
-            spell_flag |= py.inventory[i].flags;
+        if (book != 0 && py.inventory[i].category_id == book) {
+            spell_flag |= bookSpellMask(py.inventory[i]);
         }
     }
 
     return spell_flag;
+}
+
+void playerUpdateSpellRealm() {
+    if (classes[py.misc.class_id].class_to_use_mage_spells == config::spells::SPELL_TYPE_NONE) {
+        return;
+    }
+    int stat = classSpellStat(py.misc.class_id);
+    playerCalculateAllowedSpellsCount(stat);
+    playerGainMana(stat);
 }
 
 // gain spells when player wants to -JW-
@@ -847,54 +857,44 @@ void playerGainSpells() {
     int new_spells = py.flags.new_spells_to_learn;
     int diff_spells = 0;
 
-    // TODO(cook) move access to `magic_spells[]` directly to the for loop it's used in, below?
-    Spell_t *spells = &magic_spells[py.misc.class_id - 1][0];
+    Spell_t *spells = &magic_spells[py.misc.class_id][0];
+    int stat = classSpellStat(py.misc.class_id);
+    const char *noun = classSpellNoun(py.misc.class_id);
+    bool chooses = classChoosesSpells(py.misc.class_id);
 
-    int stat, offset;
-
-    // Priests don't need light because they get spells from their god, so only
-    // fail when can't see if player has SPELL_TYPE_MAGE spells. This check is done below.
-    if (classes[py.misc.class_id].class_to_use_mage_spells == config::spells::SPELL_TYPE_MAGE) {
-        // People with SPELL_TYPE_MAGE spells can't learn spell_bank if they can't read their books.
-        if (!playerCanRead()) {
-            return;
-        }
-        stat = PlayerAttr::A_INT;
-        offset = config::spells::NAME_OFFSET_SPELLS;
-    } else {
-        stat = PlayerAttr::A_WIS;
-        offset = config::spells::NAME_OFFSET_PRAYERS;
+    // Book learners need light. Priests and monks do not.
+    if (classLearnsFromBook(py.misc.class_id) && !playerCanRead()) {
+        return;
     }
 
     int last_known = lastKnownSpell();
 
     if (new_spells == 0) {
         vtype_t tmp_str = {'\0'};
-        (void) snprintf(tmp_str, MORIA_MESSAGE_SIZE, "You can't learn any new %ss!", (stat == PlayerAttr::A_INT ? "spell" : "prayer"));
+        (void) snprintf(tmp_str, MORIA_MESSAGE_SIZE, "You can't learn any new %ss!", noun);
         printMessage(tmp_str);
 
         game.player_free_turn = true;
         return;
     }
 
-    uint32_t spell_flag;
+    uint64_t spell_flag;
 
-    // determine which spells player can learn
-    // mages need the book to learn a spell, priests do not need the book
-    if (stat == PlayerAttr::A_INT) {
+    // Book realms learn from carried books. Priests and monks learn any spell of their list.
+    if (classLearnsFromBook(py.misc.class_id)) {
         spell_flag = playerDetermineLearnableSpells();
     } else {
-        spell_flag = 0x7FFFFFFF;
+        spell_flag = classKnownSpellMask();
     }
 
     // clear bits for spells already learned
     spell_flag &= ~py.flags.spells_learnt;
 
     int spell_id = 0;
-    int spell_bank[31];
-    uint32_t mask = 0x1;
+    int spell_bank[PLAYER_MAX_SPELLS];
+    uint64_t mask = 0x1;
 
-    for (int i = 0; spell_flag != 0u; mask <<= 1, i++) {
+    for (int i = 0; spell_flag != 0u && i < PLAYER_MAX_SPELLS; mask <<= 1, i++) {
         if ((spell_flag & mask) != 0u) {
             spell_flag &= ~mask;
             if (spells[i].level_required <= py.misc.level) {
@@ -913,7 +913,7 @@ void playerGainSpells() {
 
     if (new_spells == 0) {
         // do nothing
-    } else if (stat == PlayerAttr::A_INT) {
+    } else if (chooses) {
         // get to choose which mage spells will be learned
         terminalSaveScreen();
         displaySpellsList(spell_bank, spell_id, false, -1);
@@ -927,7 +927,7 @@ void playerGainSpells() {
             if (c >= 0 && c < spell_id && c < 22) {
                 new_spells--;
 
-                py.flags.spells_learnt |= 1L << spell_bank[c];
+                py.flags.spells_learnt |= 1ULL << spell_bank[c];
                 py.flags.spells_learned_order[last_known] = (uint8_t) spell_bank[c];
                 last_known++;
 
@@ -949,12 +949,12 @@ void playerGainSpells() {
         // pick a prayer at random
         while (new_spells != 0) {
             int id = randomNumber(spell_id) - 1;
-            py.flags.spells_learnt |= 1L << spell_bank[id];
+            py.flags.spells_learnt |= 1ULL << spell_bank[id];
             py.flags.spells_learned_order[last_known] = (uint8_t) spell_bank[id];
             last_known++;
 
             vtype_t tmp_str = {'\0'};
-            (void) snprintf(tmp_str, MORIA_MESSAGE_SIZE, "You have learned the prayer of %s.", spell_names[spell_bank[id] + offset]);
+            (void) snprintf(tmp_str, MORIA_MESSAGE_SIZE, "You have learned the %s of %s.", noun, spells[spell_bank[id]].name);
             printMessage(tmp_str);
 
             for (; id <= spell_id - 1; id++) {
@@ -1169,8 +1169,12 @@ static void playerAttackMonster(Coord_t coord) {
             damage = itemMagicAbilityDamage(item, damage, monster.creature_id);
             damage = playerWeaponCriticalBlow((int) item.weight, total_to_hit, damage, PlayerClassLevelAdj::BTH);
         } else {
-            // Bare hands!?
-            damage = diceRoll(Dice_t{1, 1});
+            // Bare hands. Monks are trained to hit for 2d2.
+            if (py.misc.class_id == CLASS_MONK) {
+                damage = diceRoll(Dice_t{2, 2});
+            } else {
+                damage = diceRoll(Dice_t{1, 1});
+            }
             damage = playerWeaponCriticalBlow(1, 0, damage, PlayerClassLevelAdj::BTH);
         }
 
@@ -1452,17 +1456,17 @@ void playerAttackPosition(Coord_t coord) {
 }
 
 // check to see if know any spells greater than level, eliminate them
-static void eliminateKnownSpellsGreaterThanLevel(Spell_t *msp_ptr, const char *p, int offset) {
-    uint32_t mask = 0x80000000L;
+static void eliminateKnownSpellsGreaterThanLevel(Spell_t *msp_ptr, const char *p) {
+    uint64_t mask = 1ULL << (PLAYER_MAX_SPELLS - 1);
 
-    for (int i = 31; mask != 0u; mask >>= 1, i--) {
+    for (int i = PLAYER_MAX_SPELLS - 1; mask != 0u; mask >>= 1, i--) {
         if ((mask & py.flags.spells_learnt) != 0u) {
             if (msp_ptr[i].level_required > py.misc.level) {
                 py.flags.spells_learnt &= ~mask;
                 py.flags.spells_forgotten |= mask;
 
                 vtype_t msg = {'\0'};
-                (void) snprintf(msg, MORIA_MESSAGE_SIZE, "You have forgotten the %s of %s.", p, spell_names[i + offset]);
+                (void) snprintf(msg, MORIA_MESSAGE_SIZE, "You have forgotten the %s of %s.", p, msp_ptr[i].name);
                 printMessage(msg);
             } else {
                 break;
@@ -1503,8 +1507,8 @@ static int numberOfSpellsAllowed(int stat) {
 static int numberOfSpellsKnown() {
     int known = 0;
 
-    for (uint32_t mask = 0x1; mask != 0u; mask <<= 1) {
-        if ((mask & py.flags.spells_learnt) != 0u) {
+    for (int i = 0; i < PLAYER_MAX_SPELLS; i++) {
+        if ((py.flags.spells_learnt & (1ULL << i)) != 0u) {
             known++;
         }
     }
@@ -1514,19 +1518,16 @@ static int numberOfSpellsKnown() {
 
 // remember forgotten spells while forgotten spells exist of new_spells_to_learn positive,
 // remember the spells in the order that they were learned
-static int rememberForgottenSpells(Spell_t *msp_ptr, int allowed_spells, int new_spells, const char *p, int offset) {
-    uint32_t mask;
+static int rememberForgottenSpells(Spell_t *msp_ptr, int allowed_spells, int new_spells, const char *p) {
+    uint64_t mask;
 
-    for (int n = 0; ((py.flags.spells_forgotten != 0u) && (new_spells != 0) && (n < allowed_spells) && (n < 32)); n++) {
-        // order ID is (i+1)th spell learned
+    for (int n = 0; ((py.flags.spells_forgotten != 0u) && (new_spells != 0) && (n < allowed_spells) && (n < PLAYER_MAX_SPELLS)); n++) {
         int order_id = py.flags.spells_learned_order[n];
 
-        // shifting by amounts greater than number of bits in long gives
-        // an undefined result, so don't shift for unknown spells
-        if (order_id == 99) {
+        if (order_id == 99 || order_id >= PLAYER_MAX_SPELLS) {
             mask = 0x0;
         } else {
-            mask = (uint32_t) (1L << order_id);
+            mask = 1ULL << order_id;
         }
 
         if ((mask & py.flags.spells_forgotten) != 0u) {
@@ -1536,7 +1537,7 @@ static int rememberForgottenSpells(Spell_t *msp_ptr, int allowed_spells, int new
                 py.flags.spells_learnt |= mask;
 
                 vtype_t msg = {'\0'};
-                (void) snprintf(msg, MORIA_MESSAGE_SIZE, "You have remembered the %s of %s.", p, spell_names[order_id + offset]);
+                (void) snprintf(msg, MORIA_MESSAGE_SIZE, "You have remembered the %s of %s.", p, msp_ptr[order_id].name);
                 printMessage(msg);
             } else {
                 allowed_spells++;
@@ -1550,12 +1551,12 @@ static int rememberForgottenSpells(Spell_t *msp_ptr, int allowed_spells, int new
 // determine which spells player can learn must check all spells here,
 // in gain_spell() we actually check if the books are present
 static int learnableSpells(Spell_t *msp_ptr, int new_spells) {
-    auto spell_flag = (uint32_t) (0x7FFFFFFFL & ~py.flags.spells_learnt);
+    uint64_t spell_flag = classKnownSpellMask() & ~py.flags.spells_learnt;
 
     int id = 0;
-    uint32_t mask = 0x1;
+    uint64_t mask = 0x1;
 
-    for (int i = 0; spell_flag != 0u; mask <<= 1, i++) {
+    for (int i = 0; spell_flag != 0u && i < PLAYER_MAX_SPELLS; mask <<= 1, i++) {
         if ((spell_flag & mask) != 0u) {
             spell_flag &= ~mask;
             if (msp_ptr[i].level_required <= py.misc.level) {
@@ -1574,19 +1575,16 @@ static int learnableSpells(Spell_t *msp_ptr, int new_spells) {
 // forget spells until new_spells_to_learn zero or no more spells know,
 // spells are forgotten in the opposite order that they were learned
 // NOTE: newSpells is always a negative value
-static void forgetSpells(int new_spells, const char *p, int offset) {
-    uint32_t mask;
+static void forgetSpells(int new_spells, const char *p) {
+    uint64_t mask;
 
-    for (int i = 31; (new_spells != 0) && (py.flags.spells_learnt != 0u); i--) {
-        // orderID is the (i+1)th spell learned
+    for (int i = PLAYER_MAX_SPELLS - 1; (new_spells != 0) && (py.flags.spells_learnt != 0u) && i >= 0; i--) {
         int order_id = py.flags.spells_learned_order[i];
 
-        // shifting by amounts greater than number of bits in long gives
-        // an undefined result, so don't shift for unknown spells
-        if (order_id == 99) {
+        if (order_id == 99 || order_id >= PLAYER_MAX_SPELLS) {
             mask = 0x0;
         } else {
-            mask = (uint32_t) (1L << order_id);
+            mask = 1ULL << order_id;
         }
 
         if ((mask & py.flags.spells_learnt) != 0u) {
@@ -1595,7 +1593,8 @@ static void forgetSpells(int new_spells, const char *p, int offset) {
             new_spells++;
 
             vtype_t msg = {'\0'};
-            (void) snprintf(msg, MORIA_MESSAGE_SIZE, "You have forgotten the %s of %s.", p, spell_names[order_id + offset]);
+            Spell_t const &forgotten = magic_spells[py.misc.class_id][order_id];
+            (void) snprintf(msg, MORIA_MESSAGE_SIZE, "You have forgotten the %s of %s.", p, forgotten.name);
             printMessage(msg);
         }
     }
@@ -1604,21 +1603,11 @@ static void forgetSpells(int new_spells, const char *p, int offset) {
 // calculate number of spells player should have, and
 // learn forget spells until that number is met -JEW-
 void playerCalculateAllowedSpellsCount(int stat) {
-    Spell_t &spell = magic_spells[py.misc.class_id - 1][0];
-
-    const char *magic_type_str = nullptr;
-    int offset;
-
-    if (stat == PlayerAttr::A_INT) {
-        magic_type_str = "spell";
-        offset = config::spells::NAME_OFFSET_SPELLS;
-    } else {
-        magic_type_str = "prayer";
-        offset = config::spells::NAME_OFFSET_PRAYERS;
-    }
+    Spell_t &spell = magic_spells[py.misc.class_id][0];
+    const char *magic_type_str = classSpellNoun(py.misc.class_id);
 
     // check to see if know any spells greater than level, eliminate them
-    eliminateKnownSpellsGreaterThanLevel(&spell, magic_type_str, offset);
+    eliminateKnownSpellsGreaterThanLevel(&spell, magic_type_str);
 
     // calc number of spells allowed
     int num_allowed = numberOfSpellsAllowed(stat);
@@ -1626,14 +1615,14 @@ void playerCalculateAllowedSpellsCount(int stat) {
     int new_spells = num_allowed - num_known;
 
     if (new_spells > 0) {
-        new_spells = rememberForgottenSpells(&spell, num_allowed, new_spells, magic_type_str, offset);
+        new_spells = rememberForgottenSpells(&spell, num_allowed, new_spells, magic_type_str);
 
         // If `new_spells_to_learn` is still greater than zero
         if (new_spells > 0) {
             new_spells = learnableSpells(&spell, new_spells);
         }
     } else if (new_spells < 0) {
-        forgetSpells(new_spells, magic_type_str, offset);
+        forgetSpells(new_spells, magic_type_str);
         new_spells = 0;
     }
 

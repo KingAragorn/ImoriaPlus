@@ -424,6 +424,7 @@ Creature_t creatures_list[MON_MAX_CREATURES] = {
     {"Emperor Lich",              0x2F020002L, 0x00019F72L, 0x510C, 10000,  50, 20,  75, 12, 'L', { 38, 40}, {181, 201, 214,   0},  40},
     {"Ancient Multi-Hued Dragon", 0x7F000002L, 0x00F89E05L, 0x6005, 12000,  70, 20, 100, 12, 'D', { 52, 40}, { 57,  57,  42,   0},  40},
 
+#include "data_imoria_monsters.inc"
     // Winning creatures should follow here.
     // Winning creatures are denoted by the 32 bit in CMOVE.
     // Iggy is not a win creature, just a royal pain in the ass.
@@ -662,4 +663,5 @@ MonsterAttack_t monster_attacks[MON_ATTACK_TYPES] = {
     {23, 1, {1, 1}},
     {23, 5, {1, 3}},
     {24, 5, {0, 0}},
+#include "data_imoria_attacks.inc"
 };

@@ -195,6 +195,10 @@ char caveGetTileSymbol(Coord_t const &coord) {
         return game.treasure.list[tile.treasure_id].sprite;
     }
 
+    if (tile.feature_id == TILE_WATER) {
+        return '`';
+    }
+
     if (tile.feature_id <= MAX_CAVE_FLOOR) {
         return '.';
     }

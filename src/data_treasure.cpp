@@ -519,6 +519,26 @@ DungeonObject_t game_objects[MAX_OBJECTS_IN_GAME] = {
     // these next two are needed only for the names
     {"& ruined chest",                0x00000000L, TV_CHEST,    '&', 0, 0, 0, 1, 250, 0, 0, 0, 0, {0, 0}, 0}, // 418
     {"",                              0x00000000L, TV_NOTHING,  ' ', 0, 0, 0, 0,   0, 0, 0, 0, 0, {0, 0}, 0}, // 419
+
+    // Imoria shops. sub_category_id is the trap id playerStepsOnTrap switches on.
+    {"Inn",                           0x00000000L, TV_STORE_DOOR,   '7', 0, 0, 107, 1, 0, 0, 0, 0, 0, {0, 0}, 0}, // 420
+    {"Library",                       0x00000000L, TV_STORE_DOOR,   '8', 0, 0, 109, 1, 0, 0, 0, 0, 0, {0, 0}, 0}, // 421
+    {"Music Shop",                    0x00000000L, TV_STORE_DOOR,   '9', 0, 0, 110, 1, 0, 0, 0, 0, 0, {0, 0}, 0}, // 422
+    {"Gem Store",                     0x00000000L, TV_STORE_DOOR,   '*', 0, 0, 113, 1, 0, 0, 0, 0, 0, {0, 0}, 0}, // 423
+    {"Deli",                          0x00000000L, TV_STORE_DOOR,   '&', 0, 0, 116, 1, 0, 0, 0, 0, 0, {0, 0}, 0}, // 424
+
+    // Spells 0-30 live in flags. Bit 31 of flags is cursed, so spells 31-39
+    // are the low 9 bits of misc_use.
+    {"[High Magecraft]",              0x00000000L, TV_MAGIC_BOOK,   '?', 0x1FF, 1600, 68, 1, 30, 0, 0, 0, 0, {1, 1}, 40}, // 425
+    {"[Holy Mysteries]",              0x00000000L, TV_PRAYER_BOOK,  '?', 0x1FF, 1600, 69, 1, 30, 0, 0, 0, 0, {1, 1}, 40}, // 426
+    {"[Beginners Songbook]",          0x000003FFL, TV_SONG_BOOK,    '?', 0,       25, 70, 1, 30, 0, 0, 0, 0, {1, 1}, 40}, // 427
+    {"[Songbook I]",                  0x000FFC00L, TV_SONG_BOOK,    '?', 0,      100, 71, 1, 30, 0, 0, 0, 0, {1, 1}, 40}, // 428
+    {"[Songbook II]",                 0x7FF00000L, TV_SONG_BOOK,    '?', 0,      400, 72, 1, 30, 0, 0, 0, 0, {1, 1}, 40}, // 429
+    {"[Greater Songbook]",            0x00000000L, TV_SONG_BOOK,    '?', 0x1FF,  800, 73, 1, 30, 0, 0, 0, 0, {1, 1}, 40}, // 430
+    {"[Beginners Instrument]",        0x000003FFL, TV_INSTRUMENT,   '\\', 0,      25, 74, 1, 30, 0, 0, 0, 0, {1, 1}, 40}, // 431
+    {"[Instrument I]",                0x000FFC00L, TV_INSTRUMENT,   '\\', 0,     100, 75, 1, 30, 0, 0, 0, 0, {1, 1}, 40}, // 432
+    {"[Instrument II]",               0x7FF00000L, TV_INSTRUMENT,   '\\', 0,     400, 76, 1, 30, 0, 0, 0, 0, {1, 1}, 40}, // 433
+    {"[Greater Instrument]",          0x00000000L, TV_INSTRUMENT,   '\\', 0x1FF, 800, 77, 1, 30, 0, 0, 0, 0, {1, 1}, 40}, // 434
 };
 
 const char *special_item_names[SpecialNameIds::SN_ARRAY_SIZE] = {

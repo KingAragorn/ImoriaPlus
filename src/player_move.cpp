@@ -239,6 +239,11 @@ enum class TrapTypes {
     Temple,
     Alchemist,
     MagicShop,
+    Inn = 107,
+    Library = 109,
+    MusicShop = 110,
+    GemStore = 113,
+    Deli = 116,
 };
 
 // Player hit a trap.  (Chuckle) -RAK-
@@ -327,6 +332,21 @@ static void playerStepsOnTrap(Coord_t coord) {
             break;
         case TrapTypes::MagicShop:
             storeEnter(5);
+            break;
+        case TrapTypes::Inn:
+            storeEnter(6);
+            break;
+        case TrapTypes::Library:
+            storeEnter(7);
+            break;
+        case TrapTypes::MusicShop:
+            storeEnter(8);
+            break;
+        case TrapTypes::GemStore:
+            storeEnter(9);
+            break;
+        case TrapTypes::Deli:
+            storeEnter(10);
             break;
 
         default:
@@ -446,9 +466,18 @@ void playerMove(int direction, bool do_pickup) {
     // instead force player to tunnel into walls which always takes a turn
     if (tile.creature_id < 2 || (!monster.lit && tile.feature_id >= MIN_CLOSED_SPACE)) {
         // Open floor spot
-        if (tile.feature_id <= MAX_OPEN_SPACE) {
+        if (tile.feature_id <= MAX_OPEN_SPACE || tile.feature_id == TILE_WATER) {
             // Make final assignments of char coords
             Coord_t old_coord = py.pos;
+
+            if (tile.feature_id == TILE_WATER) {
+                printMessage("You wade through the water.");
+                if (py.flags.food > 15) {
+                    py.flags.food = (int16_t) (py.flags.food - 15);
+                } else if (py.flags.food > 0) {
+                    py.flags.food = 0;
+                }
+            }
 
             py.pos.y = coord.y;
             py.pos.x = coord.x;
