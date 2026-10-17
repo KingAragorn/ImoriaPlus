@@ -238,6 +238,10 @@ void magicInitializeItemNames() {
         const char *color = colors[i];
         colors[i] = colors[id];
         colors[id] = color;
+
+        int potion_color = potion_colors[i];
+        potion_colors[i] = potion_colors[id];
+        potion_colors[id] = potion_color;
     }
 
     for (auto &w : woods) {
@@ -245,6 +249,11 @@ void magicInitializeItemNames() {
         const char *wood = w;
         w = woods[id];
         woods[id] = wood;
+
+        int index = (int) (&w - woods);
+        int wood_color = wood_colors[index];
+        wood_colors[index] = wood_colors[id];
+        wood_colors[id] = wood_color;
     }
 
     for (auto &m : metals) {
@@ -252,6 +261,11 @@ void magicInitializeItemNames() {
         const char *metal = m;
         m = metals[id];
         metals[id] = metal;
+
+        int index = (int) (&m - metals);
+        int metal_color = metal_colors[index];
+        metal_colors[index] = metal_colors[id];
+        metal_colors[id] = metal_color;
     }
 
     for (auto &r : rocks) {
@@ -259,6 +273,11 @@ void magicInitializeItemNames() {
         const char *rock = r;
         r = rocks[id];
         rocks[id] = rock;
+
+        int index = (int) (&r - rocks);
+        int rock_color = rock_colors[index];
+        rock_colors[index] = rock_colors[id];
+        rock_colors[id] = rock_color;
     }
 
     for (auto &a : amulets) {
@@ -266,6 +285,11 @@ void magicInitializeItemNames() {
         const char *amulet = a;
         a = amulets[id];
         amulets[id] = amulet;
+
+        int index = (int) (&a - amulets);
+        int amulet_color = amulet_colors[index];
+        amulet_colors[index] = amulet_colors[id];
+        amulet_colors[id] = amulet_color;
     }
 
     for (auto &m : mushrooms) {
@@ -273,6 +297,11 @@ void magicInitializeItemNames() {
         const char *mushroom = m;
         m = mushrooms[id];
         mushrooms[id] = mushroom;
+
+        int index = (int) (&m - mushrooms);
+        int mushroom_color = mushroom_colors[index];
+        mushroom_colors[index] = mushroom_colors[id];
+        mushroom_colors[id] = mushroom_color;
     }
 
     int k;

@@ -85,6 +85,14 @@ extern const char *woods[MAX_WOODS];
 extern const char *metals[MAX_METALS];
 extern const char *rocks[MAX_ROCKS];
 extern const char *amulets[MAX_AMULETS];
+
+// Display colors shuffled in lockstep with the flavor names above.
+extern int potion_colors[MAX_COLORS];
+extern int mushroom_colors[MAX_MUSHROOMS];
+extern int wood_colors[MAX_WOODS];
+extern int metal_colors[MAX_METALS];
+extern int rock_colors[MAX_ROCKS];
+extern int amulet_colors[MAX_AMULETS];
 extern const char *syllables[MAX_SYLLABLES];
 
 void identifyGameObject();

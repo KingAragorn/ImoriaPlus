@@ -49,6 +49,7 @@
 // General Umoria headers
 #include "config.h"
 #include "types.h"
+#include "color.h"
 
 #include "character.h"
 #include "dice.h"
