@@ -38,6 +38,7 @@ typedef struct {
     Dice_t hit_die;             // Creatures hit die
     uint16_t damage[4];         // Type attack and damage (index into monster_attacks)
     uint8_t level;              // Level of creature
+    uint8_t color;              // Colour-Umoria palette index
 } Creature_t;
 
 // MonsterAttack_t is a base data object.

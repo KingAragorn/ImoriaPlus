@@ -10,6 +10,53 @@
 #include "curses.h"
 
 static bool curses_on = false;
+static bool terminal_supports_color = false;
+
+// Eight curses pairs on a black background. Bold is a separate attribute,
+// so the Colour-Umoria palette still has a light and a dark version of each hue.
+static void terminalColorInitialize() {
+    terminal_supports_color = false;
+
+    if (has_colors() == FALSE) {
+        return;
+    }
+    if (start_color() == ERR) {
+        return;
+    }
+
+    for (short fg = 0; fg < 8; fg++) {
+        if (init_pair((short) (fg + 1), fg, COLOR_BLACK) == ERR) {
+            return;
+        }
+    }
+
+    terminal_supports_color = true;
+}
+
+static void applyTileColor(int color) {
+    if (!terminal_supports_color) {
+        return;
+    }
+
+    int fg = 0;
+    bool bold = false;
+    if (!colorLookup(color, fg, bold)) {
+        return;
+    }
+
+    int attrs = COLOR_PAIR(fg + 1);
+    if (bold) {
+        attrs |= A_BOLD;
+    }
+    attrset(attrs);
+}
+
+static void clearTileColor() {
+    if (!terminal_supports_color) {
+        return;
+    }
+    attrset(A_NORMAL);
+}
 
 // Spare window for saving the screen. -CJS-
 static WINDOW *save_screen;
@@ -36,6 +83,7 @@ static void moriaTerminalInitialize() {
 // initializes the terminal / curses routines
 bool terminalInitialize() {
     initscr();
+    terminalColorInitialize();
 
     // Check we have enough screen. -CJS-
     if (LINES < 24 || COLS < 80) {
@@ -191,14 +239,16 @@ void panelMoveCursor(Coord_t coord) {
 
 // Outputs a char to a given interpolated y, x position -RAK-
 // sign bit of a character used to indicate standout mode. -CJS
-void panelPutTile(char ch, Coord_t coord) {
+void panelPutTile(char ch, Coord_t coord, int color) {
     // Real coords convert to screen positions
     coord.y -= dg.panel.row_prt;
     coord.x -= dg.panel.col_prt;
 
+    applyTileColor(color);
     if (mvaddch(coord.y, coord.x, ch) == ERR) {
         abort();
     }
+    clearTileColor();
 }
 
 static Coord_t currentCursorPosition() {

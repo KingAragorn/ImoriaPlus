@@ -54,9 +54,10 @@ void eraseLine(Coord_t coord) {
 void panelMoveCursor(Coord_t coord) {
     (void) coord;
 }
-void panelPutTile(char ch, Coord_t coord) {
+void panelPutTile(char ch, Coord_t coord, int color) {
     (void) ch;
     (void) coord;
+    (void) color;
 }
 void messageLinePrintMessage(std::string message) {
     (void) message;

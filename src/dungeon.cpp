@@ -212,6 +212,97 @@ char caveGetTileSymbol(Coord_t const &coord) {
     return '%';
 }
 
+// Flavor colors follow the same sub-category index as the scrambled names.
+static int flavorColor(int const *table, int size, int sub_category_id) {
+    int index = sub_category_id & (ITEM_SINGLE_STACK_MIN - 1);
+    if (index < 0 || index >= size) {
+        return Color_White;
+    }
+    return table[index];
+}
+
+// Display color for an object in the dungeon or in flight. -EMP-
+int inventoryItemColor(Inventory_t const &item) {
+    switch (item.category_id) {
+        case TV_AMULET:
+            return flavorColor(amulet_colors, MAX_AMULETS, item.sub_category_id);
+        case TV_RING:
+            return flavorColor(rock_colors, MAX_ROCKS, item.sub_category_id);
+        case TV_STAFF:
+            return flavorColor(wood_colors, MAX_WOODS, item.sub_category_id);
+        case TV_WAND:
+            return flavorColor(metal_colors, MAX_METALS, item.sub_category_id);
+        case TV_POTION1:
+        case TV_POTION2:
+            return flavorColor(potion_colors, MAX_COLORS, item.sub_category_id);
+        case TV_FOOD:
+            if ((item.sub_category_id & (ITEM_SINGLE_STACK_MIN - 1)) < MAX_MUSHROOMS) {
+                return flavorColor(mushroom_colors, MAX_MUSHROOMS, item.sub_category_id);
+            }
+            break;
+        default:
+            break;
+    }
+
+    if (item.id < MAX_OBJECTS_IN_GAME) {
+        return game_objects[item.id].color;
+    }
+    return Color_White;
+}
+
+// Returns color for given row, column -EMP-
+int caveGetTileColor(Coord_t const &coord) {
+    Tile_t const &tile = dg.floor[coord.y][coord.x];
+
+    if (tile.creature_id == 1 && ((py.running_tracker == 0) || config::options::run_print_self)) {
+        return Color_White;
+    }
+
+    if ((py.flags.status & config::player::status::PY_BLIND) != 0u) {
+        return Color_White;
+    }
+
+    // Hallucination. The symbol roll in caveGetTileSymbol is a separate draw. -ATW-
+    if (py.flags.image > 0 && randomNumber(12) == 1) {
+        return Color_Random;
+    }
+
+    if (tile.creature_id > 1 && monsters[tile.creature_id].lit) {
+        return creatures_list[monsters[tile.creature_id].creature_id].color;
+    }
+
+    if (!tile.permanent_light && !tile.temporary_light && !tile.field_mark) {
+        return Color_White;
+    }
+
+    if (tile.treasure_id != 0 && game.treasure.list[tile.treasure_id].category_id != TV_INVIS_TRAP) {
+        return inventoryItemColor(game.treasure.list[tile.treasure_id]);
+    }
+
+    // Water is walkable and sits just above the floor range.
+    if (tile.feature_id == TILE_WATER) {
+        return Color_Water;
+    }
+
+    if (tile.feature_id <= MAX_CAVE_FLOOR) {
+        return Color_Floor;
+    }
+
+    if (tile.feature_id == TILE_GRANITE_WALL || tile.feature_id == TILE_BOUNDARY_WALL || !config::options::highlight_seams) {
+        return Color_Wall;
+    }
+
+    if (tile.feature_id == TILE_MAGMA_WALL) {
+        return Color_Magma;
+    }
+
+    if (tile.feature_id == TILE_QUARTZ_WALL) {
+        return Color_Quartz;
+    }
+
+    return Color_Default;
+}
+
 // Tests a spot for light or field mark status -RAK-
 bool caveTileVisible(Coord_t const &coord) {
     return dg.floor[coord.y][coord.x].permanent_light || dg.floor[coord.y][coord.x].temporary_light || dg.floor[coord.y][coord.x].field_mark;
@@ -386,7 +477,7 @@ void dungeonLightRoom(Coord_t const &coord) {
                         tile.field_mark = true;
                     }
                 }
-                panelPutTile(caveGetTileSymbol(location), location);
+                panelPutTile(caveGetTileSymbol(location), location, caveGetTileColor(location));
             }
         }
     }
@@ -399,7 +490,43 @@ void dungeonLiteSpot(Coord_t const &coord) {
     }
 
     char symbol = caveGetTileSymbol(coord);
-    panelPutTile(symbol, coord);
+    panelPutTile(symbol, coord, caveGetTileColor(coord));
+}
+
+// Flicker fire, lightning, glowing, and multi-hued glyphs after a move. -ATW-
+static void dungeonRedrawColorEffects(Coord_t const &coord) {
+    int height_middle = SCREEN_HEIGHT / 2;
+    int width_middle = SCREEN_WIDTH / 2;
+
+    int top = (coord.y / height_middle) * height_middle;
+    int left = (coord.x / width_middle) * width_middle;
+    int bottom = top + height_middle - 1;
+    int right = left + width_middle - 1;
+
+    Coord_t location = Coord_t{0, 0};
+    for (location.y = top; location.y <= bottom; location.y++) {
+        for (location.x = left; location.x <= right; location.x++) {
+            if (!coordInBounds(location)) {
+                continue;
+            }
+
+            Tile_t const &tile = dg.floor[location.y][location.x];
+            bool creature_lit = tile.creature_id > 1 && monsters[tile.creature_id].lit;
+            bool treasure_visible = tile.treasure_id != 0 && caveTileVisible(location);
+            if (!creature_lit && !treasure_visible) {
+                continue;
+            }
+
+            int color = caveGetTileColor(location);
+            bool animated = color == Color_Fire || color == Color_Shadow_And_Flame || color == Color_Random;
+            if (tile.creature_id > 1 && (color == Color_Glowing || color == Color_Lightning)) {
+                animated = true;
+            }
+            if (animated) {
+                panelPutTile(caveGetTileSymbol(location), location, color);
+            }
+        }
+    }
 }
 
 // Normal movement
@@ -462,9 +589,11 @@ static void sub1MoveLight(Coord_t const &from, Coord_t const &to) {
     for (coord.y = top; coord.y <= bottom; coord.y++) {
         // Leftmost to rightmost do
         for (coord.x = left; coord.x <= right; coord.x++) {
-            panelPutTile(caveGetTileSymbol(coord), coord);
+            panelPutTile(caveGetTileSymbol(coord), coord, caveGetTileColor(coord));
         }
     }
+
+    dungeonRedrawColorEffects(to);
 }
 
 // When blinded,  move only the player symbol.
@@ -476,17 +605,17 @@ static void sub3MoveLight(Coord_t const &from, Coord_t const &to) {
         for (coord.y = from.y - 1; coord.y <= from.y + 1; coord.y++) {
             for (coord.x = from.x - 1; coord.x <= from.x + 1; coord.x++) {
                 dg.floor[coord.y][coord.x].temporary_light = false;
-                panelPutTile(caveGetTileSymbol(coord), coord);
+                panelPutTile(caveGetTileSymbol(coord), coord, caveGetTileColor(coord));
             }
         }
 
         py.temporary_light_only = false;
     } else if ((py.running_tracker == 0) || config::options::run_print_self) {
-        panelPutTile(caveGetTileSymbol(from), from);
+        panelPutTile(caveGetTileSymbol(from), from, caveGetTileColor(from));
     }
 
     if ((py.running_tracker == 0) || config::options::run_print_self) {
-        panelPutTile('@', to);
+        panelPutTile('@', to, Color_White);
     }
 }
 
